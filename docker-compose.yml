@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:9.6.5
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD:
+    ports:
+      - "5431:5432"
+    volumes:
+      - infinity-postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:3.0.5
+    volumes:
+      - infinity-redis:/data
+
+  infinity:
+    build: .
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/infinity
+      - bundle:/usr/local/bundle
+    command: docker/entrypoint.sh
+    environment:
+      DB_HOST: db
+      DB_USER: postgres
+    ports:
+      - "3000:80"
+
+  sidekiq:
+    build: .
+    command: ["sidekiq", "-C", "config/sidekiq.yml"]
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/infinity
+      - bundle:/usr/local/bundle
+    environment:
+      DB_HOST: db
+      DB_USER: postgres
+      REDIS_HOST: redis
+
+volumes:
+  infinity-postgres:
+  infinity-redis:
+  bundle:
+
